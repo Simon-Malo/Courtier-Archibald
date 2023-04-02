@@ -2,10 +2,14 @@ import numpy as np
 import pandas as pd
 
 class Model():
-    def __init__(self, data, y=None, function=None, proportion: float = 0.0, res=None, shuffle = False):
+    def __init__(self, data, y=None, function=None, proportion: float = 0.0, res=None, shuffle = False, time = None):
         self.fonction = function
         self.shuf = shuffle
         self.data = data
+        if time is not None: 
+            self.data = self.time_strat(self.data, t = time)
+            self.data = self.df.apply (pd.to_numeric, errors='coerce')
+            self.data = self.df.dropna()
         self.reseau = res
         self.data['True'] = y if y is not None else self.fonction(data)
         self.don = self.data.to_numpy()
@@ -35,6 +39,26 @@ class Model():
         if self.shuffle : self.shuffle()
 
     def variation(self, liste):
-        return np.diff(liste)
+        return np.diff([0]+liste)
 
-
+    def time_strat(self, data, t = 60):
+        i = 0
+        d = []
+        liste = []
+        for index, row in data.iterrows():
+            if i <= t:
+                d.append(["NaN","NaN","NaN","NaN","NaN"])
+            else:
+                d.append(liste)
+                for _ in range(5):
+                    liste.pop()
+            liste.insert(0, row['Open'])
+            liste.insert(0, row['Volume'])
+            liste.insert(0, row['RSI'])
+            liste.insert(0, row['diff_M_G'])
+            liste.insert(0, row['Vortex'])
+            i += 1
+        h = pd.DataFrame(d)
+        h.index = data.index
+        r = pd.concat([data, h], axis=1)
+        return r
