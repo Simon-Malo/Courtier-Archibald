@@ -15,8 +15,10 @@ class binance_data(Model.Model):
             with open(self.path, "r") as file:
                 jsonStr = file.read()
                 self.df = pd.read_json(jsonStr)
+                self.df = self.df.apply (pd.to_numeric, errors='coerce')
+                self.df = self.df.dropna()
         except:
-            self.df = self.get_minute_data("BTCUSDT", "10 years ago UTC")
+            self.df = self.get_minute_data("BTCUSDT", "2 years ago UTC")
             #Calcul du RSI
             rsi = self.RSI(self.df)
             #Ajout de la colonne au df
@@ -47,11 +49,13 @@ class binance_data(Model.Model):
                     vrtx.append(float(vortex[0][i]) - float(vortex[1][i]))
             self.df['Vortex'] = vrtx
             #Enregistrement du fichier sous forme de JSON
+            self.df = self.df.apply (pd.to_numeric, errors='coerce')
+            self.df = self.df.dropna()
             self.df.to_json(self.path)
         self.frame = self.df[['Open', 'Volume', "RSI", "diff_M_G", "Vortex"]]
-        print(self.frame)
+        self.frame['Open'] = self.variation(self.frame.Open.tolist())
         self.dict = {}
-        super().__init__(self.frame, function=self.get_true_false, res=res)
+        super().__init__(self.frame, function=self.get_true_false, res=res, time=60)
 
     def get_infos(self,symbol,interval,lookback,datetime=True):
       frame = pd.DataFrame(client.get_historical_klines(symbol,interval,lookback))
@@ -65,7 +69,7 @@ class binance_data(Model.Model):
 
     def get_minute_data(self,symbol,lookback,datetime=True):
       info = client.get_symbol_info(symbol)
-      frame = self.get_infos(symbol, '1m', lookback, datetime=datetime)
+      frame = self.get_infos(symbol, '1h', lookback, datetime=datetime)
       #frame.Open.plot()
       return frame
 
@@ -190,7 +194,7 @@ class binance_data(Model.Model):
                 elif liste_achat[i]['ACH'] == 'BAS':
                     self.dict['Achat'].append(i)
         y_true = []
-        current = None
+        current = 0
         for i in listex:
             if i in self.dict['Achat']:
                 y_true.append(1)
@@ -202,6 +206,17 @@ class binance_data(Model.Model):
                 y_true.append(current)
         return y_true
 
+    def show(self):
+        listey = self.data.Open.tolist()
+        listex = [i for i in range(len(listey))]
+        colormap = ['b' for i in range(len(listex))]
+        for key in self.dict['SPE_POINTS'].keys():
+            if self.dict['SPE_POINTS'][key]['ACH'] =='BAS':
+                colormap[key]='g'
+            else:
+                colormap[key]='r'
+        plt.plot(listey)
+        plt.scatter(listex, listey, c=colormap, marker = '+')
 
 
 def plot_rsi(frame, rsi):
