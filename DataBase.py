@@ -6,9 +6,10 @@ account = client.get_account()
 from matplotlib import pyplot as plt
 import numpy as np
 import os
+import Model
 
-class binance_data:
-    def __init__(self):
+class binance_data(Model.Model):
+    def __init__(self, res = None):
         self.path = os.getcwd()+"/BITCOIN.json"
         try :
             with open(self.path, "r") as file:
@@ -49,6 +50,8 @@ class binance_data:
             self.df.to_json(self.path)
         self.frame = self.df[['Open', 'Volume', "RSI", "diff_M_G", "Vortex"]]
         print(self.frame)
+        self.dict = {}
+        super().__init__(self.frame, function=self.get_true_false, res=res)
 
     def get_infos(self,symbol,interval,lookback,datetime=True):
       frame = pd.DataFrame(client.get_historical_klines(symbol,interval,lookback))
@@ -62,8 +65,8 @@ class binance_data:
 
     def get_minute_data(self,symbol,lookback,datetime=True):
       info = client.get_symbol_info(symbol)
-      frame = self.get_infos(symbol, '1h', lookback,datetime=datetime)
-      frame.Open.plot()
+      frame = self.get_infos(symbol, '1m', lookback, datetime=datetime)
+      #frame.Open.plot()
       return frame
 
     def RSI(self, df):
@@ -110,6 +113,94 @@ class binance_data:
                 vectm.append(VMm_P / TR_P)
         return (vectp, vectm)
 
+    def get_true_false(self, data):
+        if self.dict != {}:
+            return self.dict['Ach']
+        else:
+            liste_achat = {}
+            listey = data.Open.tolist()
+            listex = [i for i in range(len(listey))]
+            for i in range(1, len(listex) - 1):
+                if listey[i] > listey[i + 1] and listey[i] > listey[i - 1]:
+                    liste_achat[listex[i]] = {'Value': listey[i], 'ACH': 'HAUT'}
+                elif listey[i] < listey[i + 1] and listey[i] < listey[i - 1]:
+                    liste_achat[listex[i]] = {'Value': listey[i], 'ACH': 'BAS'}
+            liste_supr = []
+            achat_dern = 0
+            supr_achat_dern = 0
+            vend_dern = 0
+            supr_vend_dern = 0
+            for i in liste_achat.keys():
+                if liste_achat[i]['ACH'] == 'HAUT':
+                    if vend_dern == 0:
+                        vend_dern = [i, liste_achat[i]]
+                    try:
+                        if (liste_achat[i]['Value'] - achat_dern[1]['Value']) / achat_dern[1]['Value'] > var:
+                            vend_dern = [i, liste_achat[i]]
+                        else:
+                            liste_supr.append(i)
+                            # supr_vend_dern = [i,liste_achat[i]]
+                            liste_supr.append(achat_dern[0])
+                    except:
+                        vend_dern = [i, liste_achat[i]]
+                else:
+                    if achat_dern == 0:
+                        achat_dern = [i, liste_achat[i]]
+                    if achat_dern[0] in liste_supr:
+                        if achat_dern[1]['Value'] < liste_achat[i]['Value']:
+                            del liste_supr[liste_supr.index(achat_dern[0])]
+                            liste_supr.append(i)
+                    try:
+                        if (liste_achat[i]['Value'] - vend_dern[1]['Value']) / vend_dern[1]['Value'] < -var:
+                            achat_dern = [i, liste_achat[i]]
+                        else:
+                            liste_supr.append(i)
+                            # supr_achat_dern = [i,liste_achat[i]]
+                            liste_supr.append(vend_dern[0])
+                    except:
+                        achat_dern = [i, liste_achat[i]]
+            for i in liste_supr:
+                try:
+                    liste_achat.pop(i)
+                except:
+                    pass
+            dern_point = 0
+            liste_supr = []
+            for i in liste_achat.keys():
+                if dern_point != 0:
+                    if dern_point[1]['ACH'] == liste_achat[i]['ACH']:
+                        if dern_point[1]['Value'] < liste_achat[i]['Value'] and liste_achat[i]['ACH'] == 'BAS':
+                            liste_supr.append(i)
+                        elif dern_point[1]['Value'] > liste_achat[i]['Value'] and liste_achat[i]['ACH'] == 'HAUT':
+                            liste_supr.append(i)
+                        else:
+                            liste_supr.append(dern_point[0])
+                dern_point = [i, liste_achat[i]]
+            for i in liste_supr:
+                try:
+                    liste_achat.pop(i)
+                except:
+                    pass
+            self.dict['SPE_POINTS'] = liste_achat
+            self.dict['Achat'] = []
+            self.dict['Vente'] = []
+            for i in liste_achat.keys():
+                if liste_achat[i]['ACH'] == 'HAUT':
+                    self.dict['Vente'].append(i)
+                elif liste_achat[i]['ACH'] == 'BAS':
+                    self.dict['Achat'].append(i)
+        y_true = []
+        current = None
+        for i in listex:
+            if i in self.dict['Achat']:
+                y_true.append(1)
+                current = 1
+            elif i in self.dict['Vente']:
+                y_true.append(0)
+                current = 0
+            else:
+                y_true.append(current)
+        return y_true
 
 
 
