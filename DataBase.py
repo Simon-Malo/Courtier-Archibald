@@ -52,8 +52,8 @@ class binance_data(Model.Model):
             self.df = self.df.apply (pd.to_numeric, errors='coerce')
             self.df = self.df.dropna()
             self.df.to_json(self.path)
-        self.frame = self.df[['Open', 'Volume', "RSI", "diff_M_G", "Vortex"]]
-        self.frame['Open'] = self.variation(self.frame.Open.tolist())
+        self.df['varOp'] = self.variation(self.df.Open.tolist())
+        self.frame = self.df[['varOp', 'Volume', "RSI", "diff_M_G", "Vortex"]]
         self.dict = {}
         super().__init__(self.frame, function=self.get_true_false, res=res, time=60)
 
