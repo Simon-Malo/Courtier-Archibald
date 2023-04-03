@@ -125,7 +125,7 @@ class binance_data(Model.Model):
         return (vectp, vectm)
 
     def est_dans_pente(self, data, point, varm = 0.01, test = False):
-        d = self.data.df.mg.tolist()
+        d = self.df.mg.tolist()
         var = np.diff(d[1:])
         signe = np.sign(var[point.i-2])
         if test:print(signe)
@@ -137,17 +137,15 @@ class binance_data(Model.Model):
             i+=1
         return True
 
-    def get_true_false(self, data):
+    def get_true_false(self, data, indexl = 0.01, indexh = 0.8):
         liste_extr = []
+        data = data.Open.tolist()
         for i in range(1,len(data)-1):
             if data[i] > data[i-1] and data[i] > data[i+1]:
                 liste_extr.append(point(data[i], 0, i))
             elif data[i] < data[i-1] and data[i] < data[i+1]:
                 liste_extr.append(point(data[i], 1, i))
-            if i == 182 or i == 21:
-                print(est_dans_pente(data, point(data[i], 1, i), test = True))
         liste_ut = []
-        p = pile()
         curr = liste_extr[0]
         for i in range(1,len(liste_extr)-1):
             if curr.t == 1:
@@ -175,16 +173,18 @@ class binance_data(Model.Model):
         return y_true
 
     def show(self):
-        listey = self.data.Open.tolist()
+        y = self.y_train
+        listey = self.df.Open.tolist()
         listex = [i for i in range(len(listey))]
         colormap = ['b' for i in range(len(listex))]
-        for key in self.dict['SPE_POINTS'].keys():
-            if self.dict['SPE_POINTS'][key]['ACH'] =='BAS':
-                colormap[key]='g'
+        for i in range(len(y)):
+            if y[i]:
+                colormap[i]='g'
             else:
-                colormap[key]='r'
+                colormap[i]='r'
         plt.plot(listey)
         plt.scatter(listex, listey, c=colormap, marker = '+')
+        plt.show()
 
 
 def plot_rsi(frame, rsi):
