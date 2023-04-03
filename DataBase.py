@@ -32,6 +32,7 @@ class binance_data(Model.Model):
             valeurs = self.df.Open.tolist()
             intervalle = 3
             mg = self.moyenne_glissante(valeurs, intervalle)
+            self.df['mg'] = ["NaN", "NaN"]+mg
             #Traitement des données (ajustement des lignes en fonction de l'Open)
             for i in range(len(self.df.index) - len(mg)):
                 mg.insert(0, "NaN")
