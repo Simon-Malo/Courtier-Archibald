@@ -8,6 +8,12 @@ import numpy as np
 import os
 import Model
 
+class point:
+    def __init__(self, p, t, i):
+        self.p = p
+        self.t = t
+        self.i = i
+
 class binance_data(Model.Model):
     def __init__(self, res = None):
         self.path = os.getcwd()+"/BITCOIN.json"
@@ -54,7 +60,7 @@ class binance_data(Model.Model):
             self.df = self.df.dropna()
             self.df.to_json(self.path)
         self.df['varOp'] = self.variation(self.df.Open.tolist())
-        self.frame = self.df[["Open", 'Volume', "RSI", "diff_M_G", "Vortex", 'varOp']]
+        self.frame = self.df[['Open', 'Volume', "RSI", "diff_M_G", "Vortex", "varOp"]]
         self.dict = {}
         super().__init__(self.frame, function=self.get_true_false, res=res, time=60)
 
@@ -118,93 +124,55 @@ class binance_data(Model.Model):
                 vectm.append(VMm_P / TR_P)
         return (vectp, vectm)
 
+    def est_dans_pente(self, data, point, varm = 0.01, test = False):
+        d = self.data.df.mg.tolist()
+        var = np.diff(d[1:])
+        signe = np.sign(var[point.i-2])
+        if test:print(signe)
+        i = point.i
+        for j in range(5):
+            if test : print(np.sign(var[i]), abs(var[i]))
+            if np.sign(var[i]) != signe or abs(var[i]) < varm:
+                return False
+            i+=1
+        return True
+
     def get_true_false(self, data):
-        if self.dict != {}:
-            return self.dict['Ach']
-        else:
-            liste_achat = {}
-            listey = data.Open.tolist()
-            listex = [i for i in range(len(listey))]
-            for i in range(1, len(listex) - 1):
-                if listey[i] > listey[i + 1] and listey[i] > listey[i - 1]:
-                    liste_achat[listex[i]] = {'Value': listey[i], 'ACH': 'HAUT'}
-                elif listey[i] < listey[i + 1] and listey[i] < listey[i - 1]:
-                    liste_achat[listex[i]] = {'Value': listey[i], 'ACH': 'BAS'}
-            liste_supr = []
-            achat_dern = 0
-            supr_achat_dern = 0
-            vend_dern = 0
-            supr_vend_dern = 0
-            for i in liste_achat.keys():
-                if liste_achat[i]['ACH'] == 'HAUT':
-                    if vend_dern == 0:
-                        vend_dern = [i, liste_achat[i]]
-                    try:
-                        if (liste_achat[i]['Value'] - achat_dern[1]['Value']) / achat_dern[1]['Value'] > var:
-                            vend_dern = [i, liste_achat[i]]
-                        else:
-                            liste_supr.append(i)
-                            # supr_vend_dern = [i,liste_achat[i]]
-                            liste_supr.append(achat_dern[0])
-                    except:
-                        vend_dern = [i, liste_achat[i]]
-                else:
-                    if achat_dern == 0:
-                        achat_dern = [i, liste_achat[i]]
-                    if achat_dern[0] in liste_supr:
-                        if achat_dern[1]['Value'] < liste_achat[i]['Value']:
-                            del liste_supr[liste_supr.index(achat_dern[0])]
-                            liste_supr.append(i)
-                    try:
-                        if (liste_achat[i]['Value'] - vend_dern[1]['Value']) / vend_dern[1]['Value'] < -var:
-                            achat_dern = [i, liste_achat[i]]
-                        else:
-                            liste_supr.append(i)
-                            # supr_achat_dern = [i,liste_achat[i]]
-                            liste_supr.append(vend_dern[0])
-                    except:
-                        achat_dern = [i, liste_achat[i]]
-            for i in liste_supr:
-                try:
-                    liste_achat.pop(i)
-                except:
-                    pass
-            dern_point = 0
-            liste_supr = []
-            for i in liste_achat.keys():
-                if dern_point != 0:
-                    if dern_point[1]['ACH'] == liste_achat[i]['ACH']:
-                        if dern_point[1]['Value'] < liste_achat[i]['Value'] and liste_achat[i]['ACH'] == 'BAS':
-                            liste_supr.append(i)
-                        elif dern_point[1]['Value'] > liste_achat[i]['Value'] and liste_achat[i]['ACH'] == 'HAUT':
-                            liste_supr.append(i)
-                        else:
-                            liste_supr.append(dern_point[0])
-                dern_point = [i, liste_achat[i]]
-            for i in liste_supr:
-                try:
-                    liste_achat.pop(i)
-                except:
-                    pass
-            self.dict['SPE_POINTS'] = liste_achat
-            self.dict['Achat'] = []
-            self.dict['Vente'] = []
-            for i in liste_achat.keys():
-                if liste_achat[i]['ACH'] == 'HAUT':
-                    self.dict['Vente'].append(i)
-                elif liste_achat[i]['ACH'] == 'BAS':
-                    self.dict['Achat'].append(i)
-        y_true = []
-        current = 0
-        for i in listex:
-            if i in self.dict['Achat']:
-                y_true.append(1)
-                current = 1
-            elif i in self.dict['Vente']:
-                y_true.append(0)
-                current = 0
+        liste_extr = []
+        plt.plot(main.data.df.mg.tolist()[1:])
+        for i in range(1,len(data)-1):
+            if data[i] > data[i-1] and data[i] > data[i+1]:
+                liste_extr.append(point(data[i], 0, i))
+            elif data[i] < data[i-1] and data[i] < data[i+1]:
+                liste_extr.append(point(data[i], 1, i))
+            if i == 182 or i == 21:
+                print(est_dans_pente(data, point(data[i], 1, i), test = True))
+        liste_ut = []
+        p = pile()
+        curr = liste_extr[0]
+        for i in range(1,len(liste_extr)-1):
+            if curr.t == 1:
+                if liste_extr[i].t != 1:
+                    if abs(curr.p - liste_extr[i].p)/curr.p > indexl:
+                        if liste_extr[i+1].i - liste_extr[i].i != 1 or abs(liste_extr[i+1].p - liste_extr[i].p)>indexh:
+                            if not est_dans_pente(data,liste_extr[i]):
+                                liste_ut.append(liste_extr[i])
+                                curr = liste_extr[i]
             else:
-                y_true.append(current)
+                if liste_extr[i].t != 0:
+                    if abs(liste_extr[i+1].p - liste_extr[i].p)/curr.p > indexl:
+                        if liste_extr[i+1].i - liste_extr[i].i != 1 or abs(liste_extr[i+1].p - liste_extr[i].p)>indexh:
+                            if not est_dans_pente(data,liste_extr[i]):
+                                liste_ut.append(liste_extr[i])
+                                curr = liste_extr[i]
+        listeindexes = [i.i for i in liste_ut]
+        y_true = [0 for _ in range(len(data))]
+        current = 0
+        for i in range(len(y_true)):
+            if i in listeindexes:
+                current = liste_ut[listeindexes.index(i)].t
+            y_true[i] = current
+        self.liste_ut = liste_ut
         return y_true
 
     def show(self):
