@@ -139,7 +139,6 @@ class binance_data(Model.Model):
 
     def get_true_false(self, data):
         liste_extr = []
-        plt.plot(main.data.df.mg.tolist()[1:])
         for i in range(1,len(data)-1):
             if data[i] > data[i-1] and data[i] > data[i+1]:
                 liste_extr.append(point(data[i], 0, i))
@@ -155,14 +154,14 @@ class binance_data(Model.Model):
                 if liste_extr[i].t != 1:
                     if abs(curr.p - liste_extr[i].p)/curr.p > indexl:
                         if liste_extr[i+1].i - liste_extr[i].i != 1 or abs(liste_extr[i+1].p - liste_extr[i].p)>indexh:
-                            if not est_dans_pente(data,liste_extr[i]):
+                            if not self.est_dans_pente(data,liste_extr[i]):
                                 liste_ut.append(liste_extr[i])
                                 curr = liste_extr[i]
             else:
                 if liste_extr[i].t != 0:
                     if abs(liste_extr[i+1].p - liste_extr[i].p)/curr.p > indexl:
                         if liste_extr[i+1].i - liste_extr[i].i != 1 or abs(liste_extr[i+1].p - liste_extr[i].p)>indexh:
-                            if not est_dans_pente(data,liste_extr[i]):
+                            if not self.est_dans_pente(data,liste_extr[i]):
                                 liste_ut.append(liste_extr[i])
                                 curr = liste_extr[i]
         listeindexes = [i.i for i in liste_ut]
