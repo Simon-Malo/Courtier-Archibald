@@ -6,7 +6,7 @@ class Model():
         self.fonction = function
         self.shuf = shuffle
         self.data = data
-        if time is not None: 
+        if time is not None:
             self.data = self.time_strat(self.data, t = time)
             self.data = self.df.apply (pd.to_numeric, errors='coerce')
             self.data = self.df.dropna()
@@ -22,7 +22,7 @@ class Model():
         if self.shuffle : self.shuffle()
 
     def shuffle(self):
-        np.random.shuffle(self.don)
+        # np.random.shuffle(self.don)
         self.X_train = self.don[:self.n_train, :-1]
         self.y_train = self.don[:self.n_train, -1:]
         self.X_test = self.don[self.n_train:, :-1]
